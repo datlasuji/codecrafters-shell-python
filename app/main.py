@@ -8,11 +8,14 @@ def parse_command(line):
     args = []
     current = ""
     in_single_quote = False
+    in_double_quote = False
 
     for ch in line:
-        if ch == "'":
+        if ch == "'" and not in_double_quote:
             in_single_quote = not in_single_quote
-        elif ch == " " and not in_single_quote:
+        elif ch == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+        elif ch == " " and not in_single_quote and not in_double_quote:
             if current:
                 args.append(current)
                 current = ""
@@ -96,7 +99,7 @@ while True:
         sys.stdout.flush()
         continue
 
-    # external commands (with arguments + quotes handled)
+    # external commands
     try:
         subprocess.run(parts)
     except FileNotFoundError:
