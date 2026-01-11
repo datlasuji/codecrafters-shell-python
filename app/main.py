@@ -1,8 +1,20 @@
 import sys
 import subprocess
 import os
+import readline
 
 BUILTINS = ["exit", "type", "echo", "pwd", "cd"]
+
+def completer(text, state):
+    matches = [b for b in BUILTINS if b.startswith(text)]
+    if state < len(matches):
+        return matches[state] + " "   # ← add space HERE
+    return None
+
+readline.set_completer(completer)
+readline.parse_and_bind("tab: complete")
+
+
 
 def parse_command(line):
     args = []
@@ -60,14 +72,11 @@ def parse_command(line):
 
 
 while True:
-    sys.stdout.write("$ ")
-    sys.stdout.flush()
-
-    line = sys.stdin.readline()
-    if not line:
+    try:
+        line = input("$ ")
+    except EOFError:
         break
 
-    line = line.rstrip("\n")
     if not line.strip():
         continue
 
@@ -103,62 +112,48 @@ while True:
 
     command = parts[0]
 
-    # exit builtin
+    # exit
     if command == "exit":
         sys.exit(0)
 
-    # pwd builtin
+    # pwd
     if command == "pwd":
-        sys.stdout.write(os.getcwd() + "\n")
-        sys.stdout.flush()
+        print(os.getcwd())
         continue
 
-    # cd builtin
+    # cd
     if command == "cd":
         if len(parts) < 2:
             continue
-
         path = parts[1]
         if path == "~":
             path = os.environ.get("HOME", "")
         elif path.startswith("~/"):
             path = os.path.join(os.environ.get("HOME", ""), path[2:])
-
         try:
             os.chdir(path)
         except FileNotFoundError:
-            sys.stdout.write(f"cd: {path}: No such file or directory\n")
-            sys.stdout.flush()
+            print(f"cd: {path}: No such file or directory")
         continue
 
-    # type builtin
+    # type
     if command == "type":
         if len(parts) < 2:
             continue
-
         target = parts[1]
-
         if target in BUILTINS:
-            sys.stdout.write(f"{target} is a shell builtin\n")
-            sys.stdout.flush()
+            print(f"{target} is a shell builtin")
             continue
-
-        found = None
         for p in os.environ.get("PATH", "").split(":"):
             full = os.path.join(p, target)
             if os.path.isfile(full) and os.access(full, os.X_OK):
-                found = full
+                print(f"{target} is {full}")
                 break
-
-        if found:
-            sys.stdout.write(f"{target} is {found}\n")
         else:
-            sys.stdout.write(f"{target}: not found\n")
-
-        sys.stdout.flush()
+            print(f"{target}: not found")
         continue
 
-    # external command with redirection / append
+    # external commands
     try:
         stdout_handle = open(stdout_file, stdout_mode) if stdout_file else None
         stderr_handle = open(stderr_file, stderr_mode) if stderr_file else None
@@ -175,5 +170,4 @@ while True:
             stderr_handle.close()
 
     except FileNotFoundError:
-        sys.stdout.write(f"{command}: command not found\n")
-        sys.stdout.flush()
+        print(f"{command}: command not found")
