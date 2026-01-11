@@ -75,15 +75,22 @@ while True:
 
     stdout_file = None
     stderr_file = None
+    stdout_mode = "w"
     redirect_idx = None
 
     for i, token in enumerate(parts):
-        if token in (">", "1>", "2>"):
+        if token in (">", "1>", ">>", "1>>", "2>"):
             redirect_idx = i
+            target = parts[i + 1]
+
             if token == "2>":
-                stderr_file = parts[i + 1]
-            else:
-                stdout_file = parts[i + 1]
+                stderr_file = target
+            elif token in (">", "1>"):
+                stdout_file = target
+                stdout_mode = "w"
+            elif token in (">>", "1>>"):
+                stdout_file = target
+                stdout_mode = "a"
             break
 
     if redirect_idx is not None:
@@ -146,9 +153,9 @@ while True:
         sys.stdout.flush()
         continue
 
-    # external command with redirection
+    # external command with redirection / append
     try:
-        stdout_handle = open(stdout_file, "w") if stdout_file else None
+        stdout_handle = open(stdout_file, stdout_mode) if stdout_file else None
         stderr_handle = open(stderr_file, "w") if stderr_file else None
 
         subprocess.run(
