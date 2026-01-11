@@ -1,15 +1,22 @@
 import sys
 import subprocess
 
-# Print prompt
-sys.stdout.write("$ ")
-sys.stdout.flush()
+while True:
+    # Print prompt
+    sys.stdout.write("$ ")
+    sys.stdout.flush()
 
-# Read command
-line = sys.stdin.readline().strip()
+    # Read input
+    line = sys.stdin.readline()
+    if not line:
+        break  # EOF
 
-if line:
+    line = line.strip()
+    if not line:
+        continue
+
     parts = line.split()
+
     try:
         subprocess.run(parts)
     except FileNotFoundError:
