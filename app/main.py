@@ -4,20 +4,41 @@ import os
 
 BUILTINS = ["exit", "type", "echo", "pwd", "cd"]
 
+def parse_command(line):
+    args = []
+    current = ""
+    in_single_quote = False
+
+    for ch in line:
+        if ch == "'":
+            in_single_quote = not in_single_quote
+        elif ch == " " and not in_single_quote:
+            if current:
+                args.append(current)
+                current = ""
+        else:
+            current += ch
+
+    if current:
+        args.append(current)
+
+    return args
+
+
 while True:
-    # Print prompt
+    # print prompt
     sys.stdout.write("$ ")
     sys.stdout.flush()
 
     line = sys.stdin.readline()
     if not line:
-        break  # EOF
+        break
 
     line = line.strip()
     if not line:
         continue
 
-    parts = line.split()
+    parts = parse_command(line)
     command = parts[0]
 
     # exit builtin
@@ -36,8 +57,6 @@ while True:
             continue
 
         path = parts[1]
-
-        # expand ~
         if path == "~":
             path = os.environ.get("HOME", "")
         elif path.startswith("~/"):
@@ -77,7 +96,7 @@ while True:
         sys.stdout.flush()
         continue
 
-    # external commands
+    # external commands (with arguments + quotes handled)
     try:
         subprocess.run(parts)
     except FileNotFoundError:
