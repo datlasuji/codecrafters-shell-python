@@ -29,7 +29,6 @@ def parse_command(line):
                 continue
 
             if in_double:
-                # only escape \ or "
                 if i + 1 < len(line) and line[i + 1] in ['\\', '"']:
                     current += line[i + 1]
                     i += 2
@@ -70,6 +69,7 @@ def parse_command(line):
 
 
 while True:
+    # prompt
     sys.stdout.write("$ ")
     sys.stdout.flush()
 
@@ -84,14 +84,17 @@ while True:
     parts = parse_command(line)
     command = parts[0]
 
+    # exit builtin
     if command == "exit":
         sys.exit(0)
 
+    # pwd builtin
     if command == "pwd":
         sys.stdout.write(os.getcwd() + "\n")
         sys.stdout.flush()
         continue
 
+    # cd builtin
     if command == "cd":
         if len(parts) < 2:
             continue
@@ -109,6 +112,7 @@ while True:
             sys.stdout.flush()
         continue
 
+    # type builtin
     if command == "type":
         if len(parts) < 2:
             continue
@@ -135,6 +139,7 @@ while True:
         sys.stdout.flush()
         continue
 
+    # ✅ quoted executables work here automatically
     try:
         subprocess.run(parts)
     except FileNotFoundError:
