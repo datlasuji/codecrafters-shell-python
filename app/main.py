@@ -76,15 +76,20 @@ while True:
     stdout_file = None
     stderr_file = None
     stdout_mode = "w"
+    stderr_mode = "w"
     redirect_idx = None
 
     for i, token in enumerate(parts):
-        if token in (">", "1>", ">>", "1>>", "2>"):
+        if token in (">", "1>", ">>", "1>>", "2>", "2>>"):
             redirect_idx = i
             target = parts[i + 1]
 
             if token == "2>":
                 stderr_file = target
+                stderr_mode = "w"
+            elif token == "2>>":
+                stderr_file = target
+                stderr_mode = "a"
             elif token in (">", "1>"):
                 stdout_file = target
                 stdout_mode = "w"
@@ -156,7 +161,7 @@ while True:
     # external command with redirection / append
     try:
         stdout_handle = open(stdout_file, stdout_mode) if stdout_file else None
-        stderr_handle = open(stderr_file, "w") if stderr_file else None
+        stderr_handle = open(stderr_file, stderr_mode) if stderr_file else None
 
         subprocess.run(
             parts,
