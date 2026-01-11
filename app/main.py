@@ -4,7 +4,6 @@ import os
 
 BUILTINS = ["exit", "type", "echo"]
 
-
 while True:
     # Print prompt
     sys.stdout.write("$ ")
@@ -12,7 +11,7 @@ while True:
 
     line = sys.stdin.readline()
     if not line:
-        break
+        break  # EOF
 
     line = line.strip()
     if not line:
@@ -32,24 +31,26 @@ while True:
 
         target = parts[1]
 
+        # 1. check builtins
         if target in BUILTINS:
             sys.stdout.write(f"{target} is a shell builtin\n")
             sys.stdout.flush()
             continue
 
-        found = False
+        # 2. search PATH
+        found_path = None
         for path in os.environ.get("PATH", "").split(":"):
             full_path = os.path.join(path, target)
             if os.path.isfile(full_path) and os.access(full_path, os.X_OK):
-                sys.stdout.write(f"{target} is {full_path}\n")
-                sys.stdout.flush()
-                found = True
+                found_path = full_path
                 break
 
-        if not found:
+        if found_path:
+            sys.stdout.write(f"{target} is {found_path}\n")
+        else:
             sys.stdout.write(f"{target}: not found\n")
-            sys.stdout.flush()
 
+        sys.stdout.flush()
         continue
 
     # external commands
