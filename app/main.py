@@ -6,7 +6,6 @@ while True:
     sys.stdout.write("$ ")
     sys.stdout.flush()
 
-    # Read input
     line = sys.stdin.readline()
     if not line:
         break  # EOF
@@ -16,6 +15,10 @@ while True:
         continue
 
     parts = line.split()
+
+    # exit builtin
+    if parts[0] == "exit":
+        sys.exit(0)
 
     try:
         subprocess.run(parts)
