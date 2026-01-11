@@ -30,12 +30,18 @@ while True:
         sys.stdout.flush()
         continue
 
-    # cd builtin (absolute paths only)
+    # cd builtin (supports ~)
     if command == "cd":
         if len(parts) < 2:
             continue
 
         path = parts[1]
+
+        # expand ~
+        if path == "~":
+            path = os.environ.get("HOME", "")
+        elif path.startswith("~/"):
+            path = os.path.join(os.environ.get("HOME", ""), path[2:])
 
         try:
             os.chdir(path)
