@@ -2,7 +2,7 @@ import sys
 import subprocess
 import os
 
-BUILTINS = ["exit", "type", "echo", "pwd"]
+BUILTINS = ["exit", "type", "echo", "pwd", "cd"]
 
 while True:
     # Print prompt
@@ -30,6 +30,20 @@ while True:
         sys.stdout.flush()
         continue
 
+    # cd builtin (absolute paths only)
+    if command == "cd":
+        if len(parts) < 2:
+            continue
+
+        path = parts[1]
+
+        try:
+            os.chdir(path)
+        except FileNotFoundError:
+            sys.stdout.write(f"cd: {path}: No such file or directory\n")
+            sys.stdout.flush()
+        continue
+
     # type builtin
     if command == "type":
         if len(parts) < 2:
@@ -43,8 +57,8 @@ while True:
             continue
 
         found_path = None
-        for path in os.environ.get("PATH", "").split(":"):
-            full_path = os.path.join(path, target)
+        for p in os.environ.get("PATH", "").split(":"):
+            full_path = os.path.join(p, target)
             if os.path.isfile(full_path) and os.access(full_path, os.X_OK):
                 found_path = full_path
                 break
