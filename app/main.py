@@ -7,15 +7,30 @@ BUILTINS = ["exit", "type", "echo", "pwd", "cd"]
 def parse_command(line):
     args = []
     current = ""
-    in_single_quote = False
-    in_double_quote = False
+    in_single = False
+    in_double = False
+    escape = False
 
     for ch in line:
-        if ch == "'" and not in_double_quote:
-            in_single_quote = not in_single_quote
-        elif ch == '"' and not in_single_quote:
-            in_double_quote = not in_double_quote
-        elif ch == " " and not in_single_quote and not in_double_quote:
+        if escape:
+            current += ch
+            escape = False
+            continue
+
+        # backslash works only outside quotes
+        if ch == "\\" and not in_single and not in_double:
+            escape = True
+            continue
+
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            continue
+
+        if ch == '"' and not in_single:
+            in_double = not in_double
+            continue
+
+        if ch == " " and not in_single and not in_double:
             if current:
                 args.append(current)
                 current = ""
@@ -37,8 +52,8 @@ while True:
     if not line:
         break
 
-    line = line.strip()
-    if not line:
+    line = line.rstrip("\n")
+    if not line.strip():
         continue
 
     parts = parse_command(line)
@@ -84,15 +99,15 @@ while True:
             sys.stdout.flush()
             continue
 
-        found_path = None
+        found = None
         for p in os.environ.get("PATH", "").split(":"):
-            full_path = os.path.join(p, target)
-            if os.path.isfile(full_path) and os.access(full_path, os.X_OK):
-                found_path = full_path
+            full = os.path.join(p, target)
+            if os.path.isfile(full) and os.access(full, os.X_OK):
+                found = full
                 break
 
-        if found_path:
-            sys.stdout.write(f"{target} is {found_path}\n")
+        if found:
+            sys.stdout.write(f"{target} is {found}\n")
         else:
             sys.stdout.write(f"{target}: not found\n")
 
