@@ -11,23 +11,47 @@ def parse_command(line):
     in_double = False
     escape = False
 
-    for ch in line:
-        # escape works ONLY outside single & double quotes
+    i = 0
+    while i < len(line):
+        ch = line[i]
+
         if escape:
             current += ch
             escape = False
+            i += 1
             continue
 
-        if ch == "\\" and not in_single and not in_double:
-            escape = True
+        # backslash handling
+        if ch == "\\":
+            if not in_single and not in_double:
+                escape = True
+                i += 1
+                continue
+
+            if in_double:
+                # only escape \ or "
+                if i + 1 < len(line) and line[i + 1] in ['\\', '"']:
+                    current += line[i + 1]
+                    i += 2
+                    continue
+                else:
+                    current += "\\"
+                    i += 1
+                    continue
+
+            # inside single quotes → literal
+            current += "\\"
+            i += 1
             continue
 
         if ch == "'" and not in_double:
             in_single = not in_single
+            i += 1
             continue
 
         if ch == '"' and not in_single:
             in_double = not in_double
+            i += 1
             continue
 
         if ch == " " and not in_single and not in_double:
@@ -36,6 +60,8 @@ def parse_command(line):
                 current = ""
         else:
             current += ch
+
+        i += 1
 
     if current:
         args.append(current)
@@ -58,17 +84,14 @@ while True:
     parts = parse_command(line)
     command = parts[0]
 
-    # exit builtin
     if command == "exit":
         sys.exit(0)
 
-    # pwd builtin
     if command == "pwd":
         sys.stdout.write(os.getcwd() + "\n")
         sys.stdout.flush()
         continue
 
-    # cd builtin
     if command == "cd":
         if len(parts) < 2:
             continue
@@ -86,7 +109,6 @@ while True:
             sys.stdout.flush()
         continue
 
-    # type builtin
     if command == "type":
         if len(parts) < 2:
             continue
@@ -113,7 +135,6 @@ while True:
         sys.stdout.flush()
         continue
 
-    # external commands
     try:
         subprocess.run(parts)
     except FileNotFoundError:
