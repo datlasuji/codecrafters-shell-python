@@ -2,7 +2,7 @@ import sys
 import subprocess
 import os
 
-BUILTINS = ["exit", "type", "echo"]
+BUILTINS = ["exit", "type", "echo", "pwd"]
 
 while True:
     # Print prompt
@@ -24,6 +24,12 @@ while True:
     if command == "exit":
         sys.exit(0)
 
+    # pwd builtin
+    if command == "pwd":
+        sys.stdout.write(os.getcwd() + "\n")
+        sys.stdout.flush()
+        continue
+
     # type builtin
     if command == "type":
         if len(parts) < 2:
@@ -31,13 +37,11 @@ while True:
 
         target = parts[1]
 
-        # 1. check builtins
         if target in BUILTINS:
             sys.stdout.write(f"{target} is a shell builtin\n")
             sys.stdout.flush()
             continue
 
-        # 2. search PATH
         found_path = None
         for path in os.environ.get("PATH", "").split(":"):
             full_path = os.path.join(path, target)
