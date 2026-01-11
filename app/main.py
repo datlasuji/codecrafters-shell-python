@@ -21,24 +21,15 @@ def parse_command(line):
             i += 1
             continue
 
-        # backslash handling
         if ch == "\\":
             if not in_single and not in_double:
                 escape = True
                 i += 1
                 continue
-
-            if in_double:
-                if i + 1 < len(line) and line[i + 1] in ['\\', '"']:
-                    current += line[i + 1]
-                    i += 2
-                    continue
-                else:
-                    current += "\\"
-                    i += 1
-                    continue
-
-            # inside single quotes → literal
+            if in_double and i + 1 < len(line) and line[i + 1] in ['\\', '"']:
+                current += line[i + 1]
+                i += 2
+                continue
             current += "\\"
             i += 1
             continue
@@ -69,7 +60,6 @@ def parse_command(line):
 
 
 while True:
-    # prompt
     sys.stdout.write("$ ")
     sys.stdout.flush()
 
@@ -82,6 +72,20 @@ while True:
         continue
 
     parts = parse_command(line)
+
+    # 🔴 FIX: handle > and 1>
+    output_file = None
+    redirect_idx = None
+
+    for i, token in enumerate(parts):
+        if token == ">" or token == "1>":
+            redirect_idx = i
+            break
+
+    if redirect_idx is not None:
+        output_file = parts[redirect_idx + 1]
+        parts = parts[:redirect_idx]
+
     command = parts[0]
 
     # exit builtin
@@ -139,9 +143,13 @@ while True:
         sys.stdout.flush()
         continue
 
-    # ✅ quoted executables work here automatically
+    # external command (with stdout redirection)
     try:
-        subprocess.run(parts)
+        if output_file:
+            with open(output_file, "w") as f:
+                subprocess.run(parts, stdout=f)
+        else:
+            subprocess.run(parts)
     except FileNotFoundError:
         sys.stdout.write(f"{command}: command not found\n")
         sys.stdout.flush()
