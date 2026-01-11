@@ -12,12 +12,12 @@ def parse_command(line):
     escape = False
 
     for ch in line:
+        # escape works ONLY outside single & double quotes
         if escape:
             current += ch
             escape = False
             continue
 
-        # backslash works only outside quotes
         if ch == "\\" and not in_single and not in_double:
             escape = True
             continue
@@ -44,7 +44,6 @@ def parse_command(line):
 
 
 while True:
-    # print prompt
     sys.stdout.write("$ ")
     sys.stdout.flush()
 
@@ -69,7 +68,7 @@ while True:
         sys.stdout.flush()
         continue
 
-    # cd builtin (supports ~)
+    # cd builtin
     if command == "cd":
         if len(parts) < 2:
             continue
