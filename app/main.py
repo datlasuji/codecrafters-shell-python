@@ -73,17 +73,20 @@ while True:
 
     parts = parse_command(line)
 
-    # 🔴 FIX: handle > and 1>
-    output_file = None
+    stdout_file = None
+    stderr_file = None
     redirect_idx = None
 
     for i, token in enumerate(parts):
-        if token == ">" or token == "1>":
+        if token in (">", "1>", "2>"):
             redirect_idx = i
+            if token == "2>":
+                stderr_file = parts[i + 1]
+            else:
+                stdout_file = parts[i + 1]
             break
 
     if redirect_idx is not None:
-        output_file = parts[redirect_idx + 1]
         parts = parts[:redirect_idx]
 
     command = parts[0]
@@ -143,13 +146,22 @@ while True:
         sys.stdout.flush()
         continue
 
-    # external command (with stdout redirection)
+    # external command with redirection
     try:
-        if output_file:
-            with open(output_file, "w") as f:
-                subprocess.run(parts, stdout=f)
-        else:
-            subprocess.run(parts)
+        stdout_handle = open(stdout_file, "w") if stdout_file else None
+        stderr_handle = open(stderr_file, "w") if stderr_file else None
+
+        subprocess.run(
+            parts,
+            stdout=stdout_handle,
+            stderr=stderr_handle
+        )
+
+        if stdout_handle:
+            stdout_handle.close()
+        if stderr_handle:
+            stderr_handle.close()
+
     except FileNotFoundError:
         sys.stdout.write(f"{command}: command not found\n")
         sys.stdout.flush()
