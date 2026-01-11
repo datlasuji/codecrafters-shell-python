@@ -5,15 +5,22 @@ import readline
 
 BUILTINS = ["exit", "type", "echo", "pwd", "cd"]
 
+# ---------- READLINE AUTOCOMPLETE ----------
 def completer(text, state):
+    buffer = readline.get_line_buffer()
+
+    # If there is a space, we are completing arguments → do nothing
+    if " " in buffer:
+        return None
+
     matches = [b for b in BUILTINS if b.startswith(text)]
     if state < len(matches):
-        return matches[state] + " "   # ← add space HERE
+        return matches[state] + " "
     return None
 
 readline.set_completer(completer)
 readline.parse_and_bind("tab: complete")
-
+# ------------------------------------------
 
 
 def parse_command(line):
