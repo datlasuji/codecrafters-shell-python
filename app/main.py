@@ -7,6 +7,9 @@ import re
 import readline
 import glob
 
+# History storage
+command_history = []
+
 def exit_handler(args):
     return True
 
@@ -43,12 +46,19 @@ def type_handler(args):
             print(f"{target}: not found")
     return False
 
+def history_handler(args):
+    """Display command history."""
+    for i, cmd in enumerate(command_history, start=1):
+        print(f"    {i}  {cmd}")
+    return False
+
 BUILTINS = {
     "exit": exit_handler,
     "pwd": pwd_handler,
     "cd": cd_handler,
     "echo": echo_handler,
     "type": type_handler,
+    "history": history_handler,
 }
 
 def parse_redirection(command_parts):
@@ -442,6 +452,10 @@ def main():
             command = input()
         except EOFError:
             break
+        
+        # Add command to history
+        if command.strip():
+            command_history.append(command)
         
         try:
             parts = shlex.split(command)
