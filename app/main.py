@@ -9,6 +9,7 @@ import glob
 
 # History storage
 command_history = []
+last_written_index = 0  # Track how many commands have been written to file
 
 def exit_handler(args):
     return True
@@ -48,6 +49,8 @@ def type_handler(args):
 
 def history_handler(args):
     """Display command history."""
+    global last_written_index
+    
     # Check for -r flag
     if args and args[0] == "-r":
         # history -r <path> - read history from file
@@ -63,6 +66,8 @@ def history_handler(args):
                     # Skip empty lines
                     if line:
                         command_history.append(line)
+            # Update last_written_index to reflect that these commands are already in the file
+            last_written_index = len(command_history)
         except FileNotFoundError:
             print(f"history: {history_file}: No such file or directory", file=sys.stderr)
         except Exception as e:
@@ -82,6 +87,28 @@ def history_handler(args):
             with open(history_file, 'w') as f:
                 for cmd in command_history:
                     f.write(cmd + '\n')
+            # Update last_written_index to track all commands have been written
+            last_written_index = len(command_history)
+        except Exception as e:
+            print(f"history: {history_file}: {e}", file=sys.stderr)
+        
+        return False
+    
+    # Check for -a flag
+    if args and args[0] == "-a":
+        # history -a <path> - append new commands to file
+        if len(args) < 2:
+            print("history: -a: option requires an argument", file=sys.stderr)
+            return False
+        
+        history_file = args[1]
+        try:
+            # Append only commands that haven't been written yet
+            with open(history_file, 'a') as f:
+                for i in range(last_written_index, len(command_history)):
+                    f.write(command_history[i] + '\n')
+            # Update last_written_index to track what we've written
+            last_written_index = len(command_history)
         except Exception as e:
             print(f"history: {history_file}: {e}", file=sys.stderr)
         
