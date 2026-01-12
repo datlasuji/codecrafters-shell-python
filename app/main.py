@@ -6,17 +6,37 @@ import readline
 BUILTINS = ["exit", "type", "echo", "pwd", "cd"]
 
 # ---------- READLINE AUTOCOMPLETE ----------
+def get_executables_in_path():
+    executables = set()
+    for path in os.environ.get("PATH", "").split(":"):
+        if not os.path.isdir(path):
+            continue
+        try:
+            for name in os.listdir(path):
+                full = os.path.join(path, name)
+                if os.path.isfile(full) and os.access(full, os.X_OK):
+                    executables.add(name)
+        except PermissionError:
+            continue
+    return executables
+
+
+EXECUTABLES = get_executables_in_path()
+
 def completer(text, state):
     buffer = readline.get_line_buffer()
 
-    # If there is a space, we are completing arguments → do nothing
+    # Only complete the command (first word)
     if " " in buffer:
         return None
 
-    matches = [b for b in BUILTINS if b.startswith(text)]
+    candidates = set(BUILTINS) | EXECUTABLES
+    matches = sorted([c for c in candidates if c.startswith(text)])
+
     if state < len(matches):
         return matches[state] + " "
     return None
+
 
 readline.set_completer(completer)
 readline.parse_and_bind("tab: complete")
