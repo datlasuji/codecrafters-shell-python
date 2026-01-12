@@ -48,8 +48,20 @@ def type_handler(args):
 
 def history_handler(args):
     """Display command history."""
-    for i, cmd in enumerate(command_history, start=1):
-        print(f"    {i}  {cmd}")
+    if args:
+        # history <n> - show last n commands
+        try:
+            n = int(args[0])
+            # Get the last n commands
+            start_index = max(0, len(command_history) - n)
+            for i in range(start_index, len(command_history)):
+                print(f"    {i + 1}  {command_history[i]}")
+        except ValueError:
+            print(f"history: {args[0]}: numeric argument required", file=sys.stderr)
+    else:
+        # history - show all commands
+        for i, cmd in enumerate(command_history, start=1):
+            print(f"    {i}  {cmd}")
     return False
 
 BUILTINS = {
