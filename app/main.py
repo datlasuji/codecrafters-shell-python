@@ -106,13 +106,56 @@ def split_pipeline(parts):
     
     return commands
 
+def execute_builtin_in_pipeline(cmd, args, stdin_fd, stdout_fd, stderr_fd):
+    """Execute a builtin command with specified stdin/stdout/stderr."""
+    # Fork to run builtin in a separate process
+    pid = os.fork()
+    
+    if pid == 0:
+        # Child process
+        try:
+            # Redirect stdin
+            if stdin_fd is not None:
+                os.dup2(stdin_fd, sys.stdin.fileno())
+                os.close(stdin_fd)
+            
+            # Redirect stdout
+            if stdout_fd is not None:
+                os.dup2(stdout_fd, sys.stdout.fileno())
+                os.close(stdout_fd)
+            
+            # Redirect stderr
+            if stderr_fd is not None:
+                os.dup2(stderr_fd, sys.stderr.fileno())
+                os.close(stderr_fd)
+            
+            # Execute the builtin
+            handler = BUILTINS[cmd]
+            handler(args)
+            
+            # Exit child process
+            os._exit(0)
+        except Exception as e:
+            print(f"Error executing builtin: {e}", file=sys.stderr)
+            os._exit(1)
+    else:
+        # Parent process - close file descriptors
+        if stdin_fd is not None:
+            os.close(stdin_fd)
+        if stdout_fd is not None:
+            os.close(stdout_fd)
+        if stderr_fd is not None:
+            os.close(stderr_fd)
+        
+        return pid
+
 def execute_pipeline(commands):
     """Execute a pipeline of commands."""
     if len(commands) == 1:
         # Single command, no pipeline
         return execute_single_command(commands[0])
     
-    # Create pipes for communication between processes
+    # Create pipes and processes
     processes = []
     prev_pipe_read = None
     
@@ -134,65 +177,81 @@ def execute_pipeline(commands):
             pipe_read, pipe_write = None, None
         
         # Determine stdin
-        if prev_pipe_read is not None:
-            stdin = prev_pipe_read
-        else:
-            stdin = None
+        stdin_fd = prev_pipe_read
         
         # Determine stdout
         if is_last:
             if stdout_file:
                 mode = 'a' if stdout_append else 'w'
-                stdout = open(stdout_file, mode)
+                stdout_fd = os.open(stdout_file, os.O_WRONLY | os.O_CREAT | (os.O_APPEND if stdout_append else os.O_TRUNC), 0o644)
             else:
-                stdout = None
+                stdout_fd = None
         else:
-            stdout = pipe_write
+            stdout_fd = pipe_write
         
         # Determine stderr
         if stderr_file:
             mode = 'a' if stderr_append else 'w'
-            stderr = open(stderr_file, mode)
+            stderr_fd = os.open(stderr_file, os.O_WRONLY | os.O_CREAT | (os.O_APPEND if stderr_append else os.O_TRUNC), 0o644)
         else:
-            stderr = None
+            stderr_fd = None
         
-        # Start the process
-        try:
-            proc = subprocess.Popen(
-                [cmd] + args,
-                stdin=stdin,
-                stdout=stdout,
-                stderr=stderr
-            )
-            processes.append(proc)
-        except FileNotFoundError:
-            print(f"{cmd}: command not found", file=sys.stderr)
-            # Clean up any open file descriptors
-            if prev_pipe_read is not None:
-                os.close(prev_pipe_read)
-            if pipe_write is not None:
-                os.close(pipe_write)
-            if pipe_read is not None:
-                os.close(pipe_read)
-            return False
+        # Check if it's a builtin
+        if cmd in BUILTINS:
+            # Execute builtin in a forked process
+            pid = execute_builtin_in_pipeline(cmd, args, stdin_fd, stdout_fd, stderr_fd)
+            processes.append(pid)
+        else:
+            # Execute external command
+            pid = os.fork()
+            
+            if pid == 0:
+                # Child process
+                try:
+                    # Redirect stdin
+                    if stdin_fd is not None:
+                        os.dup2(stdin_fd, sys.stdin.fileno())
+                        os.close(stdin_fd)
+                    
+                    # Redirect stdout
+                    if stdout_fd is not None:
+                        os.dup2(stdout_fd, sys.stdout.fileno())
+                        os.close(stdout_fd)
+                    
+                    # Redirect stderr
+                    if stderr_fd is not None:
+                        os.dup2(stderr_fd, sys.stderr.fileno())
+                        os.close(stderr_fd)
+                    
+                    # Close the read end of current pipe if exists
+                    if pipe_read is not None:
+                        os.close(pipe_read)
+                    
+                    # Execute the command
+                    os.execvp(cmd, [cmd] + args)
+                except FileNotFoundError:
+                    print(f"{cmd}: command not found", file=sys.stderr)
+                    os._exit(127)
+                except Exception as e:
+                    print(f"Error: {e}", file=sys.stderr)
+                    os._exit(1)
+            else:
+                # Parent process - close file descriptors
+                if stdin_fd is not None:
+                    os.close(stdin_fd)
+                if stdout_fd is not None:
+                    os.close(stdout_fd)
+                if stderr_fd is not None:
+                    os.close(stderr_fd)
+                
+                processes.append(pid)
         
-        # Close file descriptors in parent process
-        if prev_pipe_read is not None:
-            os.close(prev_pipe_read)
-        
-        if not is_last:
-            os.close(pipe_write)
-            prev_pipe_read = pipe_read
-        
-        # Close file handles if we opened them
-        if stdout and stdout_file:
-            stdout.close()
-        if stderr and stderr_file:
-            stderr.close()
+        # Update prev_pipe_read for next iteration
+        prev_pipe_read = pipe_read
     
     # Wait for all processes to complete
-    for proc in processes:
-        proc.wait()
+    for pid in processes:
+        os.waitpid(pid, 0)
     
     return False
 
