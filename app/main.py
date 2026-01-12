@@ -541,43 +541,59 @@ def load_history_from_file():
             # Silently ignore errors loading history file
             pass
 
+def save_history_to_file():
+    """Save history to HISTFILE on exit."""
+    histfile = os.environ.get("HISTFILE")
+    if histfile:
+        try:
+            with open(histfile, 'w') as f:
+                for cmd in command_history:
+                    f.write(cmd + '\n')
+        except Exception as e:
+            # Silently ignore errors saving history file
+            pass
+
 def main():
     setup_readline()
     
     # Load history from HISTFILE on startup
     load_history_from_file()
     
-    while True:
-        try:
-            command = input("$ ")
-        except EOFError:
-            break
-        
-        # Add command to history (readline handles this automatically)
-        if command.strip():
-            command_history.append(command)
-        
-        try:
-            parts = shlex.split(command)
-        except ValueError as e:
-            print(f"Error parsing command: {e}")
-            continue
-        
-        if not parts:
-            continue
-        
-        # Check for pipeline
-        commands = split_pipeline(parts)
-        
-        if len(commands) > 1:
-            # Execute pipeline
-            exit_shell = execute_pipeline(commands)
-        else:
-            # Execute single command
-            exit_shell = execute_single_command(parts)
-        
-        if exit_shell:
-            break
+    try:
+        while True:
+            try:
+                command = input("$ ")
+            except EOFError:
+                break
+            
+            # Add command to history (readline handles this automatically)
+            if command.strip():
+                command_history.append(command)
+            
+            try:
+                parts = shlex.split(command)
+            except ValueError as e:
+                print(f"Error parsing command: {e}")
+                continue
+            
+            if not parts:
+                continue
+            
+            # Check for pipeline
+            commands = split_pipeline(parts)
+            
+            if len(commands) > 1:
+                # Execute pipeline
+                exit_shell = execute_pipeline(commands)
+            else:
+                # Execute single command
+                exit_shell = execute_single_command(parts)
+            
+            if exit_shell:
+                break
+    finally:
+        # Save history to HISTFILE when exiting
+        save_history_to_file()
 
 if __name__ == "__main__":
     main()
