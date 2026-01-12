@@ -522,8 +522,30 @@ def setup_readline():
     readline.set_completer(complete)
     readline.set_completer_delims(" \t\n")
 
+def load_history_from_file():
+    """Load history from HISTFILE if it exists."""
+    global last_written_index
+    
+    histfile = os.environ.get("HISTFILE")
+    if histfile and os.path.exists(histfile):
+        try:
+            with open(histfile, 'r') as f:
+                for line in f:
+                    line = line.rstrip('\n')
+                    # Skip empty lines
+                    if line:
+                        command_history.append(line)
+            # Update last_written_index to reflect that these commands are already in the file
+            last_written_index = len(command_history)
+        except Exception as e:
+            # Silently ignore errors loading history file
+            pass
+
 def main():
     setup_readline()
+    
+    # Load history from HISTFILE on startup
+    load_history_from_file()
     
     while True:
         try:
