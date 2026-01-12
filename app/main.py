@@ -132,8 +132,8 @@ def get_longest_common_prefix(strings):
     for string in strings[1:]:
         # Find the length of common prefix
         length = 0
-        for i, (c1, c2) in enumerate(zip(prefix, string)):
-            if c1 != c2:
+        for i in range(min(len(prefix), len(string))):
+            if prefix[i] != string[i]:
                 break
             length = i + 1
         
@@ -169,30 +169,30 @@ def complete(text, state):
                 return last_tab_matches[0] + " "
             return None
             
-        # Multiple matches
-        if last_tab_count == 0:
-            # First tab press - increment counter, ring bell, return the text
-            last_tab_count += 1
-            if state == 0:
+        # Multiple matches - complete to longest common prefix
+        if state == 0:
+            longest_prefix = get_longest_common_prefix(last_tab_matches)
+            
+            # If LCP is longer than current text, complete to LCP
+            if len(longest_prefix) > len(text):
+                return longest_prefix
+            
+            # Otherwise, ring bell on first tab
+            if last_tab_count == 0:
+                last_tab_count += 1
                 sys.stdout.write('\a')  # Ring bell
                 sys.stdout.flush()
                 return text
-            return None
-        else:
-            # Second tab press - display all matches
-            if state == 0:
-                print()  # New line
+            else:
+                # Second tab press - display all matches
+                print()
                 print("  ".join(last_tab_matches))
                 sys.stdout.write(f"$ {text}")
                 sys.stdout.flush()
+                last_tab_count = 0  # Reset for next time
                 return text
-            
-            # Complete to longest common prefix
-            longest_prefix = get_longest_common_prefix(last_tab_matches)
-            if len(longest_prefix) > len(text) and state == 0:
-                return longest_prefix
-                
-            return None
+        
+        return None
     
     # Multiple word completion (not implemented yet)
     if state == 0:
