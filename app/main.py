@@ -70,6 +70,23 @@ def history_handler(args):
         
         return False
     
+    # Check for -w flag
+    if args and args[0] == "-w":
+        # history -w <path> - write history to file
+        if len(args) < 2:
+            print("history: -w: option requires an argument", file=sys.stderr)
+            return False
+        
+        history_file = args[1]
+        try:
+            with open(history_file, 'w') as f:
+                for cmd in command_history:
+                    f.write(cmd + '\n')
+        except Exception as e:
+            print(f"history: {history_file}: {e}", file=sys.stderr)
+        
+        return False
+    
     # Regular history display
     if args:
         # history <n> - show last n commands
