@@ -48,6 +48,29 @@ def type_handler(args):
 
 def history_handler(args):
     """Display command history."""
+    # Check for -r flag
+    if args and args[0] == "-r":
+        # history -r <path> - read history from file
+        if len(args) < 2:
+            print("history: -r: option requires an argument", file=sys.stderr)
+            return False
+        
+        history_file = args[1]
+        try:
+            with open(history_file, 'r') as f:
+                for line in f:
+                    line = line.rstrip('\n')
+                    # Skip empty lines
+                    if line:
+                        command_history.append(line)
+        except FileNotFoundError:
+            print(f"history: {history_file}: No such file or directory", file=sys.stderr)
+        except Exception as e:
+            print(f"history: {history_file}: {e}", file=sys.stderr)
+        
+        return False
+    
+    # Regular history display
     if args:
         # history <n> - show last n commands
         try:
