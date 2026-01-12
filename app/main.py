@@ -449,7 +449,8 @@ def complete(text, state):
     return None
 
 def setup_readline():
-    """Set up readline with custom completion."""
+    """Set up readline with custom completion and history."""
+    # Set up tab completion
     readline.parse_and_bind("tab: complete")
     readline.set_completer(complete)
     readline.set_completer_delims(" \t\n")
@@ -458,14 +459,12 @@ def main():
     setup_readline()
     
     while True:
-        sys.stdout.write("$ ")
-        sys.stdout.flush()
         try:
-            command = input()
+            command = input("$ ")
         except EOFError:
             break
         
-        # Add command to history
+        # Add command to history (readline handles this automatically)
         if command.strip():
             command_history.append(command)
         
